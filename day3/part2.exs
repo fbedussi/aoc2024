@@ -5,8 +5,7 @@ defmodule InputHelpers do
     {:ok, rawData} = File.read(filePath)
 
     rawData
-    |> String.split("\n", trim: true)
-    |> Enum.filter(fn line -> line != "" end)
+    |> String.trim()
 
     # |> IO.inspect(label: "input")
   end
@@ -33,14 +32,16 @@ end
 
 defmodule Main do
   def run(isTest) do
-    InputHelpers.parse(isTest)
-    |> Enum.map(fn line ->
-      Regex.scan(~r/do\(\)|don't\(\)|mul\(\d{1,3},\d{1,3}\)/, line)
-    end)
+    isTest
+    |> InputHelpers.parse()
+    |> then(&Regex.scan(~r/do\(\)|don't\(\)|mul\(\d{1,3},\d{1,3}\)/, &1))
     |> List.flatten()
     |> Helpers.process()
     |> Enum.map(fn instruction ->
-      Regex.scan(~r/mul\((\d{1,3},\d{1,3})\)/, instruction) |> hd() |> Enum.reverse() |> hd()
+      Regex.scan(~r/mul\((\d{1,3},\d{1,3})\)/, instruction)
+      |> hd()
+      |> Enum.reverse()
+      |> hd()
     end)
     |> Enum.map(fn line -> line |> String.split(",") |> Enum.map(&String.to_integer/1) end)
     |> Enum.map(fn [a, b] -> a * b end)
