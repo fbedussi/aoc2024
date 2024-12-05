@@ -61,16 +61,13 @@ end
 
 defmodule Main do
   def run(isTest) do
-    {rules, pagesSets} = InputHelpers.parse(isTest) |> IO.inspect(label: "input")
+    {rules, pagesSets} = InputHelpers.parse(isTest)
 
     pagesSets
     |> Enum.filter(&Helpers.is_set_valid(&1, rules))
-    |> IO.inspect(label: "valid sets1")
     |> Enum.map(&Enum.reverse/1)
     |> Enum.reject(&Helpers.is_set_valid(&1, rules))
-    |> IO.inspect(label: "valid sets2")
     |> Enum.map(&Helpers.find_middle/1)
-    |> IO.inspect(label: "middle values")
     |> Enum.sum()
     |> IO.inspect(
       label:

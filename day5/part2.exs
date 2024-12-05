@@ -54,25 +54,17 @@ defmodule Helpers do
     |> Enum.all?(fn {_, b} -> other_pages |> Enum.member?(b) end)
   end
 
-  def fix(page_set, rules) do
-    do_fix(
-      page_set,
-      rules
-      |> Enum.filter(fn {a, b} -> Enum.member?(page_set, a) && Enum.member?(page_set, b) end)
-    )
+  def fix(pages, rules) do
+    fix(pages, rules, get_violated_rule(pages, rules))
   end
 
-  defp do_fix(pages, rules) do
-    do_fix(pages, rules, get_violated_rule(pages, rules))
-  end
-
-  defp do_fix(pages, _, nil) do
+  def fix(pages, _, nil) do
     pages
   end
 
-  defp do_fix([h | t] = pages, rules, {invalid_page, insert_before}) do
-    pages = swap(pages, invalid_page, insert_before)
-    do_fix(pages, rules, get_violated_rule(pages, rules))
+  def fix(pages, rules, {invalid_page, insert_before}) do
+    updated_pages = swap(pages, invalid_page, insert_before)
+    fix(updated_pages, rules, get_violated_rule(updated_pages, rules))
   end
 
   def get_violated_rule([], _) do
@@ -82,8 +74,7 @@ defmodule Helpers do
   def get_violated_rule([page | other_pages], rules) do
     violated_rule =
       rules
-      |> Enum.filter(fn {a, _} -> a === page end)
-      |> Enum.find(fn {_, b} -> !Enum.member?(other_pages, b) end)
+      |> Enum.find(fn {a, b} -> a === page && !Enum.member?(other_pages, b) end)
 
     if violated_rule do
       violated_rule
@@ -94,10 +85,10 @@ defmodule Helpers do
 
   defp swap(pages, invalid_page, insert_before) do
     pages = pages |> List.delete(invalid_page)
+
     insert_before_index = pages |> Enum.find_index(fn page -> page === insert_before end)
 
-    {prev, next} =
-      pages |> Enum.split(insert_before_index)
+    {prev, next} = pages |> Enum.split(insert_before_index)
 
     Enum.concat([prev, [invalid_page], next])
   end
@@ -120,7 +111,13 @@ defmodule Main do
 
     pagesSets
     |> Enum.reject(fn set -> Enum.member?(valid_sets, set) end)
-    |> Enum.map(&Helpers.fix(&1, rules))
+    |> Enum.map(
+      &Helpers.fix(
+        &1,
+        rules
+        |> Enum.filter(fn {a, b} -> Enum.member?(&1, a) && Enum.member?(&1, b) end)
+      )
+    )
     |> Enum.map(&Helpers.find_middle/1)
     |> Enum.sum()
     |> IO.inspect(
