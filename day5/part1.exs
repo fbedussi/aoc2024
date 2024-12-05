@@ -83,8 +83,6 @@ defmodule Main do
   end
 end
 
-Main.run(true)
-
 defmodule Test do
   use ExUnit.Case
 

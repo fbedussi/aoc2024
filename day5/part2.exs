@@ -55,8 +55,6 @@ defmodule Helpers do
   end
 
   def fix(page_set, rules) do
-    IO.puts("fix")
-
     do_fix(
       page_set,
       rules
@@ -65,22 +63,16 @@ defmodule Helpers do
   end
 
   defp do_fix(pages, rules) do
-    IO.inspect(pages, label: "pages")
-    IO.inspect(rules, label: "rules")
-
-    do_fix(pages, rules, get_violated_rule(pages, rules) |> IO.inspect(label: "violated rule"))
+    do_fix(pages, rules, get_violated_rule(pages, rules))
   end
 
-  def get_invalid_page([], _) do
-    nil
+  defp do_fix(pages, _, nil) do
+    pages
   end
 
-  def get_invalid_page([page | other_pages], rules) do
-    if is_page_valid(page, other_pages, rules) do
-      get_invalid_page(other_pages, rules)
-    else
-      page
-    end
+  defp do_fix([h | t] = pages, rules, {invalid_page, insert_before}) do
+    pages = swap(pages, invalid_page, insert_before)
+    do_fix(pages, rules, get_violated_rule(pages, rules))
   end
 
   def get_violated_rule([], _) do
@@ -100,30 +92,13 @@ defmodule Helpers do
     end
   end
 
-  defp do_fix(pages, _, nil) do
-    pages
-  end
-
-  defp do_fix([h | t] = pages, rules, {invalid_page, insert_before}) do
-    IO.inspect(invalid_page, label: "invalid page")
-    IO.inspect(insert_before, label: "insert_before")
-    pages = swap(pages, invalid_page, insert_before)
-    do_fix(pages, rules, get_violated_rule(pages, rules))
-  end
-
   defp swap(pages, invalid_page, insert_before) do
     pages = pages |> List.delete(invalid_page)
-    IO.inspect(pages, label: "pages without invalid page")
-
-    # dbg()
     insert_before_index = pages |> Enum.find_index(fn page -> page === insert_before end)
-    IO.inspect(insert_before_index, label: "insert_before_index")
 
-    # dbg()
     {prev, next} =
-      pages |> Enum.split(insert_before_index) |> IO.inspect(label: "prev, next")
+      pages |> Enum.split(insert_before_index)
 
-    dbg()
     Enum.concat([prev, [invalid_page], next])
   end
 
@@ -134,7 +109,7 @@ end
 
 defmodule Main do
   def run(isTest) do
-    {rules, pagesSets} = InputHelpers.parse(isTest) |> IO.inspect(label: "input")
+    {rules, pagesSets} = InputHelpers.parse(isTest)
 
     valid_sets =
       pagesSets
@@ -142,15 +117,11 @@ defmodule Main do
       |> Enum.map(&Enum.reverse/1)
       |> Enum.reject(&Helpers.is_set_valid(&1, rules))
       |> Enum.map(&Enum.reverse/1)
-      |> IO.inspect(label: "valid sets")
 
     pagesSets
     |> Enum.reject(fn set -> Enum.member?(valid_sets, set) end)
-    |> IO.inspect(label: "invalid sets")
     |> Enum.map(&Helpers.fix(&1, rules))
-    |> IO.inspect(label: "fixed set")
     |> Enum.map(&Helpers.find_middle/1)
-    |> IO.inspect(label: "middle values")
     |> Enum.sum()
     |> IO.inspect(
       label:
@@ -162,8 +133,6 @@ defmodule Main do
     )
   end
 end
-
-Main.run(true)
 
 defmodule Test do
   use ExUnit.Case
