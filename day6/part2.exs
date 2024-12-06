@@ -4,128 +4,113 @@ defmodule InputHelpers do
 
     {:ok, rawData} = File.read(filePath)
 
-    {rules, page_sets} =
-      rawData
-      |> String.split("\n", trim: true)
-      |> Enum.split_with(fn line -> line |> String.contains?("|") end)
+    rawData
+    |> String.split("\n", trim: true)
+    |> Enum.filter(fn line -> line != "" end)
+    |> linesToMap()
+  end
 
-    rules =
-      rules
-      |> Enum.map(fn rule ->
-        String.split(rule, "|", trim: true)
-        |> Enum.map(&String.to_integer/1)
-        |> List.to_tuple()
-      end)
-
-    page_sets =
-      page_sets
-      |> Enum.map(fn line ->
-        String.split(line, ",", trim: true) |> Enum.map(&String.to_integer/1)
-      end)
-
-    {rules, page_sets}
+  def linesToMap(lines) do
+    lines
+    |> Enum.map(fn line -> String.split(line, "", trim: true) |> Enum.with_index() end)
+    |> Enum.with_index()
+    |> Enum.flat_map(fn {row, rowIndex} ->
+      row |> Enum.map(fn {val, colIndex} -> {colIndex, rowIndex, val} end)
+    end)
+    |> Enum.reduce(%{}, fn {x, y, v}, acc ->
+      acc |> Map.put({x, y}, {v, v === "^", nil})
+    end)
   end
 end
 
 defmodule Helpers do
-  def is_set_valid(page_set, rules) do
-    do_is_set_valid(
-      page_set,
-      rules
-      |> Enum.filter(fn {a, b} -> Enum.member?(page_set, a) && Enum.member?(page_set, b) end)
-    )
+  def try_new_obstacles(matrix, start, coords_to_try) do
+    try_new_obstacles(matrix, start, coords_to_try, [])
   end
 
-  def do_is_set_valid([_ | []], _) do
-    true
+  def try_new_obstacles(_, _, [], result) do
+    result
   end
 
-  def do_is_set_valid([page | other_pages], rules) do
-    if is_page_valid(page, other_pages, rules) do
-      do_is_set_valid(other_pages, rules)
+  def try_new_obstacles(original_matrix, start, [coord_to_try | other_coords_to_try], result) do
+    modified_matrix = Map.put(original_matrix, coord_to_try, {"#", false, nil})
+
+    result = [Helpers.visit(modified_matrix, start, "up") | result]
+
+    try_new_obstacles(original_matrix, start, other_coords_to_try, result)
+  end
+
+  def visit(matrix, {coord, {cell_val, visited, with_direction}} = cell, direction) do
+    matrix = Map.put(matrix, coord, {cell_val, true, direction})
+
+    if visited && with_direction === direction do
+      true
     else
-      false
+      move = get_move(direction)
+
+      next_coord = move.(coord)
+      next_cell = matrix[next_coord]
+
+      if next_cell do
+        {next_cell_val, _, _} = next_cell
+
+        if next_cell_val === "#" do
+          direction = turn(direction)
+          visit(matrix, cell, direction)
+        else
+          visit(matrix, {next_coord, next_cell}, direction)
+        end
+      else
+        false
+      end
     end
   end
 
-  defp is_page_valid(page, other_pages, rules) do
-    rules
-    |> Enum.filter(fn {a, _} -> a === page end)
-    |> Enum.all?(fn {_, b} -> other_pages |> Enum.member?(b) end)
+  def get_move(direction) do
+    direction_map = %{
+      up: fn {x, y} -> {x, y - 1} end,
+      down: fn {x, y} -> {x, y + 1} end,
+      left: fn {x, y} -> {x - 1, y} end,
+      right: fn {x, y} -> {x + 1, y} end
+    }
+
+    direction_map[String.to_atom(direction)]
   end
 
-  def fix(pages, rules) do
-    fix(pages, rules, get_violated_rule(pages, rules))
-  end
+  def turn(direction) do
+    turn_map = %{
+      up: "right",
+      right: "down",
+      down: "left",
+      left: "up"
+    }
 
-  def fix(pages, _, nil) do
-    pages
-  end
-
-  def fix(pages, rules, {invalid_page, insert_before}) do
-    updated_pages = swap(pages, invalid_page, insert_before)
-    fix(updated_pages, rules, get_violated_rule(updated_pages, rules))
-  end
-
-  def get_violated_rule([], _) do
-    nil
-  end
-
-  def get_violated_rule([page | other_pages], rules) do
-    violated_rule =
-      rules
-      |> Enum.find(fn {a, b} -> a === page && !Enum.member?(other_pages, b) end)
-
-    if violated_rule do
-      violated_rule
-    else
-      get_violated_rule(other_pages, rules)
-    end
-  end
-
-  defp swap(pages, invalid_page, insert_before) do
-    pages = pages |> List.delete(invalid_page)
-
-    insert_before_index = pages |> Enum.find_index(fn page -> page === insert_before end)
-
-    {prev, next} = pages |> Enum.split(insert_before_index)
-
-    Enum.concat([prev, [invalid_page], next])
-  end
-
-  def find_middle(list) do
-    Enum.at(list, floor(length(list) / 2))
+    turn_map[String.to_atom(direction)]
   end
 end
 
 defmodule Main do
   def run(isTest) do
-    {rules, pagesSets} = InputHelpers.parse(isTest)
+    matrix = InputHelpers.parse(isTest)
 
-    valid_sets =
-      pagesSets
-      |> Enum.filter(&Helpers.is_set_valid(&1, rules))
-      |> Enum.map(&Enum.reverse/1)
-      |> Enum.reject(&Helpers.is_set_valid(&1, rules))
-      |> Enum.map(&Enum.reverse/1)
+    coords_to_try =
+      matrix
+      |> Map.to_list()
+      |> Enum.filter(fn {_, {val, _, _}} -> val === "." end)
+      |> Enum.map(fn {coord, _} -> coord end)
 
-    pagesSets
-    |> Enum.reject(fn set -> Enum.member?(valid_sets, set) end)
-    |> Enum.map(
-      &Helpers.fix(
-        &1,
-        rules
-        |> Enum.filter(fn {a, b} -> Enum.member?(&1, a) && Enum.member?(&1, b) end)
-      )
-    )
-    |> Enum.map(&Helpers.find_middle/1)
-    |> Enum.sum()
+    start =
+      matrix
+      |> Enum.find(fn {_, {val, _, _}} -> val === "^" end)
+
+    Helpers.try_new_obstacles(matrix, start, coords_to_try)
+    |> Enum.count(&Function.identity/1)
     |> IO.inspect(
       label:
         if isTest do
-          "test result:"
+          "test result"
         else
-          "real result:"
+          "real result"
         end
     )
   end
@@ -137,12 +122,12 @@ defmodule Test do
   ExUnit.start()
 
   # @tag :skip
-  test "Day 5 - Part 1 - test data" do
-    assert Main.run(true) == 123
+  test "Day 6 - Part 2 - test data" do
+    assert Main.run(true) == 6
   end
 
   # @tag :skip
-  test "Day 5 - Part 1 - real data" do
-    assert Main.run(false) == 5479
+  test "Day 6 - Part 2 - real data" do
+    assert Main.run(false) == 1562
   end
 end
