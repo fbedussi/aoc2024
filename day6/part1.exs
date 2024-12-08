@@ -7,11 +7,6 @@ defmodule InputHelpers do
     rawData
     |> String.split("\n", trim: true)
     |> Enum.filter(fn line -> line != "" end)
-    |> linesToMap()
-  end
-
-  def linesToMap(lines) do
-    lines
     |> Enum.map(fn line -> String.split(line, "", trim: true) |> Enum.with_index() end)
     |> Enum.with_index()
     |> Enum.flat_map(fn {row, rowIndex} ->
@@ -30,40 +25,38 @@ defmodule Helpers do
     next_coord = move.(coord)
     next_cell = matrix[next_coord]
 
-    if next_cell do
-      {next_cell_val, _} = next_cell
+    evaluate_next_cell(next_coord, next_cell, matrix, cell, direction)
+  end
 
-      if next_cell_val === "#" do
-        direction = turn(direction)
-        visit(matrix, cell, direction)
-      else
-        visit(matrix, {next_coord, next_cell}, direction)
-      end
-    else
-      matrix
-    end
+  defp evaluate_next_cell(_, nil, matrix, _, _) do
+    matrix
+  end
+
+  defp evaluate_next_cell(_, {"#", _}, matrix, cell, direction) do
+    direction = turn(direction)
+    visit(matrix, cell, direction)
+  end
+
+  defp evaluate_next_cell(next_coord, next_cell, matrix, _, direction) do
+    visit(matrix, {next_coord, next_cell}, direction)
   end
 
   def get_move(direction) do
-    direction_map = %{
+    %{
       up: fn {x, y} -> {x, y - 1} end,
       down: fn {x, y} -> {x, y + 1} end,
       left: fn {x, y} -> {x - 1, y} end,
       right: fn {x, y} -> {x + 1, y} end
-    }
-
-    direction_map[String.to_atom(direction)]
+    }[String.to_atom(direction)]
   end
 
   def turn(direction) do
-    turn_map = %{
+    %{
       up: "right",
       right: "down",
       down: "left",
       left: "up"
-    }
-
-    turn_map[String.to_atom(direction)]
+    }[String.to_atom(direction)]
   end
 end
 
