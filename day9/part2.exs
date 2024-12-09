@@ -87,12 +87,12 @@ defmodule Test do
   ExUnit.start()
 
   # @tag :skip
-  test "Day 8 - Part 2 - test data" do
+  test "Day 8 - Part 1 - test data" do
     assert Main.run(true) == 34
   end
 
   # @tag :skip
-  test "Day 8 - Part 2 - real data" do
+  test "Day 8 - Part 1 - real data" do
     assert Main.run(false) == 1277
   end
 end
