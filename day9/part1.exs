@@ -7,11 +7,9 @@ defmodule InputHelpers do
     rawData
     |> String.split("\n", trim: true)
     |> Enum.filter(fn line -> line != "" end)
-    |> Enum.map(fn line -> line |> String.split("", trim: true) end)
     |> hd()
 
-    # |> length()
-    # |> IO.inspect(label: "length")
+    # |> IO.inspect(label: "input")
   end
 end
 
@@ -25,47 +23,47 @@ defmodule Helpers do
       arr
       |> Enum.take_every(2)
       |> Enum.with_index()
-      |> Enum.map(fn {val, i} ->
-        String.pad_leading("", String.to_integer(val), Integer.to_string(i))
-      end)
+      |> Enum.map(fn {val, i} -> List.duplicate(i, String.to_integer(val)) end)
 
     spaces =
       arr
       |> tl()
       |> Enum.take_every(2)
-      |> Enum.map(fn val ->
-        String.pad_leading("", String.to_integer(val), ".")
-      end)
+      |> Enum.map(fn val -> List.duplicate(nil, String.to_integer(val)) end)
 
     Enum.concat([[blocksH], List.zip([spaces, blocksT]) |> Enum.map(fn {a, b} -> [a, b] end)])
     |> List.flatten()
-    |> Enum.join()
   end
 
-  def compact(str) do
-    arr =
-      str
-      |> String.split("", trim: true)
+  def compact(arr) do
+    arr
+    |> Enum.with_index()
+    |> do_compact()
+  end
 
-    arrReversed =
+  defp do_compact(arr) do
+    {first_space, first_space_index} = arr |> Enum.find(fn {val, _} -> val === nil end)
+
+    {first_char, first_char_index} =
+      Enum.find(arr |> Enum.reverse(), fn {val, _} -> val !== nil end)
+
+    if first_space_index > first_char_index do
       arr
-      |> Enum.reverse()
-
-    compact(arr, arrReversed, [])
-    |> Enum.reverse()
-    |> Enum.join()
-  end
-
-  defp compact([h | t], [hr | tr], result) do
-    if Enum.all?(t, fn i -> i === "." end) do
-      result
     else
-      compact(t, tr, [hr | [h | result]])
+      arr =
+        arr
+        |> List.update_at(first_space_index, fn _ -> {first_char, first_space_index} end)
+        |> List.update_at(first_char_index, fn _ -> {nil, first_char_index} end)
+
+      do_compact(arr)
     end
   end
 
-  def getResult(str) do
-    1
+  def getResult(arr) do
+    arr
+    |> Enum.filter(fn {val, _} -> val !== nil end)
+    |> Enum.map(fn {val, index} -> val * index end)
+    |> Enum.sum()
   end
 end
 
@@ -84,21 +82,6 @@ defmodule Test do
 
   ExUnit.start()
 
-  @tag :skip
-  test "convert" do
-    assert Helpers.convert("12345") == "0..111....22222"
-  end
-
-  @tag :skip
-  test "compact" do
-    assert Helpers.compact("0..111....22222") == "022111222......"
-  end
-
-  @tag :skip
-  test "getResult" do
-    assert Helpers.getResult("0099811188827773336446555566..............") == 1928
-  end
-
   # @tag :skip
   test "Day 9 - Part 1 - test data" do
     assert Main.run(true) == 1928
@@ -106,6 +89,6 @@ defmodule Test do
 
   # @tag :skip
   test "Day 9 - Part 1 - real data" do
-    assert Main.run(false) == 394
+    assert Main.run(false) == 6_448_989_155_953
   end
 end
