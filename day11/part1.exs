@@ -58,9 +58,7 @@ end
 defmodule Main do
   def run(isTest) do
     InputHelpers.parse(isTest)
-    |> Enum.map(fn n ->
-      Helpers.run([n], 0)
-    end)
+    |> Enum.map(&Helpers.run([&1], 0))
     |> Enum.map(fn a -> length(a) end)
     |> Enum.sum()
     |> IO.inspect(label: if(isTest, do: "test result: ", else: "real result: "))

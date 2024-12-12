@@ -10,74 +10,81 @@ defmodule InputHelpers do
     |> then(fn line ->
       line |> String.split(" ", trim: true) |> Enum.map(&String.to_integer/1)
     end)
+    |> Enum.reduce(%{}, fn n, acc -> acc |> Map.put(n, 1) end)
   end
 end
 
 defmodule Helpers do
-  def run(stones, 25) do
+  def run(stones, 6) do
     stones
   end
 
   def run(stones, turn) do
-    IO.puts(turn)
-    run(change([], stones), turn + 1)
+    change_stones(stones, Map.keys(stones)) |> run(turn + 1)
   end
 
-  def change(prev, []) do
-    prev
+  def change_stones(stones, keys_to_process) do
   end
 
-  def change(prev, [current | next]) do
-    change(change_stone(prev, current), next)
+  def update_key(key, stones) do
+    change_stone(key)
+    |> Enum.each(fn stone ->
+      Map.put(
+        stones,
+        IO.inspect(stone, label: "stone"),
+        (stones[stone] || 0) + stones[IO.inspect(key, label: "key")]
+      )
+    end)
+
+    stones |> IO.inspect(label: "stones")
   end
 
-  def change_stone(prev, stone) do
+  def change_stone(stone) do
     cond do
       stone === 0 ->
-        [1 | prev]
+        [1]
 
       Integer.to_string(stone) |> String.length() |> rem(2) === 0 ->
-        {a, b} = split(stone)
-        [a | [b | prev]]
+        split(stone)
 
       true ->
-        [stone * 2024 | prev]
+        [stone * 2024]
     end
   end
 
   def split(stone) do
     str = Integer.to_string(stone)
 
-    {a, b} =
-      str
-      |> String.split_at(round(String.length(str) / 2))
+    str
+    |> String.split_at(round(String.length(str) / 2))
+    |> Tuple.to_list()
+    |> Enum.map(&String.to_integer/1)
+  end
 
-    {String.to_integer(a), String.to_integer(b)}
+  def get_result(set) do
+    set
+    |> Map.values()
+    |> Enum.sum()
   end
 end
 
 defmodule Main do
   def run(isTest) do
     InputHelpers.parse(isTest)
-    |> Enum.map(fn n ->
-      IO.puts("starting number")
-      IO.puts(n)
-      Helpers.run([n], 0)
-    end)
-    |> Enum.map(fn a -> length(a) end)
-    |> Enum.sum()
+    |> Helpers.run(0)
+    |> Helpers.get_result()
     |> IO.inspect(label: if(isTest, do: "test result: ", else: "real result: "))
   end
 end
 
-Main.run(false)
+# Main.run(false)
 
 defmodule Test do
   use ExUnit.Case
 
   ExUnit.start()
 
-  @tag :skip
+  # @tag :skip
   test "Day 11 - Part 1 - test data" do
     assert Main.run(true) == 55312
   end
