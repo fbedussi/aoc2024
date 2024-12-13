@@ -18,7 +18,7 @@ end
 
 defmodule Helpers do
   def start_group({_, result}, []) do
-    result
+    result |> Enum.filter(fn x -> x !== [] end)
   end
 
   def start_group({matrix, result}, [key | _]) do
@@ -76,6 +76,7 @@ defmodule Main do
     matrix = InputHelpers.parse(isTest)
 
     Helpers.start_group({matrix, []}, Map.keys(matrix))
+    |> IO.inspect(label: "group")
     |> Helpers.calculate()
     |> IO.inspect(
       label:
