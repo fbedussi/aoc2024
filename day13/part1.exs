@@ -38,9 +38,8 @@ end
 defmodule Helpers do
   def solve({{ax, ay}, {bx, by}, {px, py}}) do
     a = (px * by - py * bx) / (ax * by - ay * bx)
-    IO.inspect(a, label: "a")
 
-    if a - trunc(a) === 0.0 do
+    if a == trunc(a) do
       b = (px - a * ax) / bx
       {a, b}
     else
@@ -53,22 +52,15 @@ defmodule Helpers do
       solutions
       |> Enum.filter(&Function.identity/1)
 
-    # |> IO.inspect(label: "successes")
-
-    # _prizes = successes |> length()
-
     successes
     |> Enum.map(fn {a, b} -> a * 3 + b end)
     |> Enum.sum()
-
-    # |> IO.inspect(label: "tokens")
   end
 end
 
 defmodule Main do
   def run(isTest) do
     InputHelpers.parse(isTest)
-    |> IO.inspect(label: "input")
     |> Enum.map(&Helpers.solve/1)
     |> Helpers.calculate()
     |> IO.inspect(

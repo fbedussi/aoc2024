@@ -6,111 +6,68 @@ defmodule InputHelpers do
 
     rawData
     |> String.split("\n", trim: true)
-    |> Enum.filter(fn line -> line != "" end)
-    |> Enum.map(fn line -> String.split(line, "", trim: true) |> Enum.with_index() end)
-    |> Enum.with_index()
-    |> Enum.flat_map(fn {row, rowIndex} ->
-      row |> Enum.map(fn {val, colIndex} -> {colIndex, rowIndex, val} end)
+    |> Enum.chunk_every(3)
+    |> Enum.map(fn chunk ->
+      chunk
+      |> Enum.reduce({{nil, nil}, {nil, nil}, {nil, nil}}, &decode_line/2)
     end)
-    |> Enum.reduce(%{}, fn {x, y, v}, acc -> acc |> Map.put({x, y}, v) end)
+  end
+
+  def decode_line("Button A: " <> rest, {_, b, p}) do
+    {decode_data(rest), b, p}
+  end
+
+  def decode_line("Button B: " <> rest, {a, _, p}) do
+    {a, decode_data(rest), p}
+  end
+
+  def decode_line("Prize: " <> rest, {a, b, _}) do
+    {px, py} = decode_data(rest)
+    {a, b, {px + 10_000_000_000_000, py + 10_000_000_000_000}}
+  end
+
+  def decode_data(rest) do
+    rest
+    |> String.split(", ", trim: true)
+    |> Enum.map(fn str ->
+      str |> String.slice(2..-1) |> String.to_integer()
+    end)
+    |> List.to_tuple()
   end
 end
 
 defmodule Helpers do
-  def start_group({_, result}, []) do
-    result |> Enum.filter(fn x -> x !== [] end)
-  end
+  def solve({{ax, ay}, {bx, by}, {px, py}}) do
+    a = (px * by - py * bx) / (ax * by - ay * bx)
 
-  def start_group({matrix, result}, [key | _]) do
-    add_to_group(key, matrix[key], matrix, [[] | result])
-    |> start_group(Map.keys(matrix))
-  end
+    if a == trunc(a) do
+      b = (px - a * ax) / bx
 
-  def add_to_group(_, value, matrix, result) when value === nil do
-    {matrix, result}
-  end
-
-  def add_to_group({x, y} = key, value, matrix, [group | groups]) do
-    result = [[{key, value} | group] | groups]
-    matrix = Map.delete(matrix, key)
-
-    [
-      {x, y - 1},
-      {x + 1, y},
-      {x, y + 1},
-      {x - 1, y}
-    ]
-    |> Enum.filter(fn nextKey ->
-      matrix[nextKey] === value
-    end)
-    |> Enum.reduce({matrix, result}, fn key, {matrix, result} ->
-      add_to_group(key, matrix[key], matrix, result)
-    end)
-  end
-
-  def calculate(result) do
-    result
-    |> Enum.map(fn group -> {length(group), get_sides(group)} end)
-    |> Enum.map(fn {area, sides} -> area * sides end)
-    |> Enum.sum()
-  end
-
-  def get_sides(group) do
-    group
-    |> Enum.flat_map(&Helpers.get_corners/1)
-    |> Helpers.get_vertexes(group)
-    |> Enum.sort()
-    |> Enum.dedup()
-    |> length()
-  end
-
-  def get_corners({{x, y}, _}) do
-    [
-      {x, y},
-      {x + 1, y},
-      {x + 1, y + 1},
-      {x, y + 1}
-    ]
-  end
-
-  def get_vertexes(corners, group) do
-    # a vertex is a corner where the ratio of occupied/free surrounding cells is odd
-    corners
-    |> Enum.filter(fn {x, y} ->
-      occupied_adjacent =
-        [
-          {x, y},
-          {x - 1, y},
-          {x, y - 1},
-          {x - 1, y - 1}
-        ]
-        |> Enum.filter(fn corner ->
-          Enum.member?(group |> Enum.map(fn {{x, y}, _} -> {x, y} end), corner)
-        end)
-        |> length()
-
-      cond do
-        occupied_adjacent === 1 ->
-          true
-
-        occupied_adjacent === 2 ->
-          false
-
-        occupied_adjacent === 3 ->
-          true
-
-        occupied_adjacent === 4 ->
-          false
+      if b == trunc(b) do
+        {a, b}
+      else
+        false
       end
-    end)
+    else
+      false
+    end
+  end
+
+  def calculate(solutions) do
+    successes =
+      solutions
+      |> Enum.filter(&Function.identity/1)
+
+    successes
+    |> Enum.map(fn {a, b} -> a * 3 + b end)
+    |> Enum.sum()
   end
 end
 
 defmodule Main do
   def run(isTest) do
-    matrix = InputHelpers.parse(isTest)
-
-    Helpers.start_group({matrix, []}, Map.keys(matrix))
+    InputHelpers.parse(isTest)
+    |> Enum.map(&Helpers.solve/1)
     |> Helpers.calculate()
     |> IO.inspect(
       label:
@@ -129,13 +86,12 @@ defmodule Test do
   ExUnit.start()
 
   # @tag :skip
-  test "Day 12 - Part 2 - test data" do
-    assert Main.run(true) == 1206
+  test "Day 13 - Part 2 - test data" do
+    assert Main.run(true) == 875_318_608_908
   end
 
   # @tag :skip
-  test "Day 12 - Part 2 - real data" do
-    assert Main.run(false) == 1_550_156
-    # 939220 too low
+  test "Day 13 - Part 2 - real data" do
+    assert Main.run(false) == 96_979_582_619_758
   end
 end
