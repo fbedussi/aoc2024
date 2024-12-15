@@ -22,51 +22,66 @@ defmodule InputHelpers do
 end
 
 defmodule Helpers do
+  def simulate(data, t, cols, rows) do
+    data
+    |> Enum.map(&Helpers.calculate_position(&1, cols, rows, t))
+    |> print(t, cols, rows)
+
+    simulate(data, t + 1, cols, rows)
+  end
+
+  def print(data, t, cols, rows) do
+    {_, ys} = data |> Enum.unzip()
+
+    unique_ys =
+      ys
+      |> Enum.sort()
+      |> Enum.dedup()
+      |> length()
+
+    # IO.puts(unique_xs)
+
+    IO.puts(t)
+
+    if unique_ys < 87 do
+      index = data |> Enum.reduce(%{}, fn coord, result -> Map.put(result, coord, true) end)
+      print_line(index, cols, rows, 0)
+      require IEx
+      IEx.pry()
+    end
+  end
+
+  def print_line(index, cols, rows, row) do
+    line = build_line(index, cols - 1, row, [])
+    IO.puts(line)
+
+    if row < rows do
+      print_line(index, cols, rows, row + 1)
+    end
+  end
+
+  def build_line(_, -1, _, line) do
+    line |> Enum.join("")
+  end
+
+  def build_line(index, col, row, line) do
+    build_line(index, col - 1, row, [if(index[{col, row}], do: "X", else: " ") | line])
+  end
+
   def calculate_position({{x, y}, {vx, vy}}, cols, rows, t) do
-    x = IO.inspect(rem(x + vx * t, cols), label: "x")
-    y = IO.inspect(rem(y + vy * t, rows), label: "y")
+    x = rem(x + vx * t, cols)
+    y = rem(y + vy * t, rows)
 
-    IO.inspect({if(x < 0, do: cols + x, else: x), if(y < 0, do: rows + y, else: y)},
-      label: "coord"
-    )
-  end
-
-  def filter_middle(coords, cols, rows) do
-    x_to_remove = trunc(cols / 2)
-    y_to_remove = trunc(rows / 2)
-
-    coords
-    |> Enum.filter(fn {x, y} -> x != x_to_remove && y != y_to_remove end)
-  end
-
-  def calculate_factor(positions, cols, rows) do
-    middle_x = trunc(cols / 2)
-    middle_y = trunc(rows / 2)
-
-    positions
-    |> Enum.filter(fn {x, y} -> x == trunc(x) && y == trunc(y) end)
-    |> Enum.group_by(fn {x, y} ->
-      cond do
-        x < middle_x && y < middle_y -> 1
-        x > middle_x && y < middle_y -> 2
-        x > middle_x && y > middle_y -> 3
-        x < middle_x && y > middle_y -> 4
-      end
-    end)
-    |> Map.values()
-    |> Enum.map(&length/1)
-    |> Enum.reduce(1, fn v, t -> t * v end)
+    {if(x < 0, do: cols + x, else: x), if(y < 0, do: rows + y, else: y)}
   end
 end
 
 defmodule Main do
   def run(isTest, cols, rows) do
     InputHelpers.parse(isTest)
-    |> Enum.map(&Helpers.calculate_position(&1, cols, rows, 100))
-    |> IO.inspect(label: "final positions")
-    |> Helpers.filter_middle(cols, rows)
-    |> IO.inspect(label: "filtered positions")
-    |> Helpers.calculate_factor(cols, rows)
+    # |> Enum.map(&Helpers.calculate_position(&1, cols, rows, 1))
+    |> Helpers.simulate(1, cols, rows)
+    # |> Helpers.calculate_factor(cols, rows)
     |> IO.inspect(
       label:
         if isTest do
@@ -78,18 +93,22 @@ defmodule Main do
   end
 end
 
+Main.run(false, 101, 103)
+
 defmodule Test do
   use ExUnit.Case
 
   ExUnit.start()
 
-  # @tag :skip
-  test "Day 14 - Part 1 - test data" do
+  @tag :skip
+  test "Day 14 - Part 2 - test data" do
     assert Main.run(true, 11, 7) == 12
   end
 
-  # @tag :skip
-  test "Day 14 - Part 1 - real data" do
+  @tag :skip
+  test "Day 14 - Part 2 - real data" do
     assert Main.run(false, 101, 103) == 226_236_192
   end
+
+  # 8168
 end
