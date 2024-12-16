@@ -57,52 +57,37 @@ defmodule Helpers do
 
   def get_sides(group) do
     group
-    |> Enum.flat_map(&Helpers.get_corners/1)
-    |> Helpers.get_vertexes(group)
-    |> Enum.sort()
-    |> Enum.dedup()
-    |> length()
+    |> Enum.map(&count_vertexes(&1, group))
+    |> Enum.sum()
   end
 
-  def get_corners({{x, y}, _}) do
-    [
-      {x, y},
-      {x + 1, y},
-      {x + 1, y + 1},
-      {x, y + 1}
-    ]
-  end
+  def count_vertexes({{x, y}, v}, group) do
+    concave_points =
+      [
+        [{x, y - 1}, {x + 1, y}],
+        [{x + 1, y}, {x, y + 1}],
+        [{x, y + 1}, {x - 1, y}],
+        [{x - 1, y}, {x, y - 1}]
+      ]
+      |> Enum.filter(fn [coord1, coord2] ->
+        !Enum.member?(group, {coord1, v}) && !Enum.member?(group, {coord2, v})
+      end)
+      |> length()
 
-  def get_vertexes(corners, group) do
-    # a vertex is a corner where the ratio of occupied/free surrounding cells is odd
-    corners
-    |> Enum.filter(fn {x, y} ->
-      occupied_adjacent =
-        [
-          {x, y},
-          {x - 1, y},
-          {x, y - 1},
-          {x - 1, y - 1}
-        ]
-        |> Enum.filter(fn corner ->
-          Enum.member?(group |> Enum.map(fn {{x, y}, _} -> {x, y} end), corner)
-        end)
-        |> length()
+    convex_points =
+      [
+        [{x, y - 1}, {x + 1, y - 1}, {x + 1, y}],
+        [{x + 1, y}, {x + 1, y + 1}, {x, y + 1}],
+        [{x, y + 1}, {x - 1, y + 1}, {x - 1, y}],
+        [{x - 1, y}, {x - 1, y - 1}, {x, y - 1}]
+      ]
+      |> Enum.filter(fn [coord1, coord2, coord3] ->
+        Enum.member?(group, {coord1, v}) && !Enum.member?(group, {coord2, v}) &&
+          Enum.member?(group, {coord3, v})
+      end)
+      |> length()
 
-      cond do
-        occupied_adjacent === 1 ->
-          true
-
-        occupied_adjacent === 2 ->
-          false
-
-        occupied_adjacent === 3 ->
-          true
-
-        occupied_adjacent === 4 ->
-          false
-      end
-    end)
+    concave_points + convex_points
   end
 end
 
@@ -135,7 +120,6 @@ defmodule Test do
 
   # @tag :skip
   test "Day 12 - Part 2 - real data" do
-    assert Main.run(false) == 1_550_156
-    # 939220 too low
+    assert Main.run(false) == 946_084
   end
 end
