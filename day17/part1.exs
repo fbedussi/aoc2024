@@ -1,20 +1,6 @@
 require IEx
 import Bitwise
 
-defmodule InputHelpers do
-  def parse(isTest) do
-    filePath = if isTest, do: "test-data.txt", else: "data.txt"
-
-    {:ok, rawData} = File.read(filePath)
-
-    rawData
-    |> String.split("\n", trim: true)
-    |> Enum.filter(fn line -> line != "" end)
-    |> Enum.map(fn line -> String.split(line, "", trim: true) |> Enum.with_index() end)
-    |> Enum.with_index()
-  end
-end
-
 defmodule Helpers do
   def run(a, b, c, instructions, pointer, result) do
     instruction = Enum.at(instructions, pointer)
@@ -23,7 +9,7 @@ defmodule Helpers do
       {a, b, c, result |> Enum.reverse()}
     else
       operand = Enum.at(instructions, pointer + 1)
-      IO.inspect({a, b, c, instruction, operand, result, pointer})
+      {a, b, c, instruction, operand, result, pointer}
       {a, b, c, result, pointer} = exec(a, b, c, instruction, operand, result, pointer)
       run(a, b, c, instructions, pointer, result)
     end
@@ -73,16 +59,7 @@ end
 
 defmodule Main do
   def run(a, b, c, instructions) do
-    IO.puts(1)
     Helpers.run(a, b, c, instructions, 0, [])
-    # |> IO.inspect(
-    #   label:
-    #     if isTest do
-    #       "test result"
-    #     else
-    #       "real result"
-    #     end
-    # )
   end
 end
 

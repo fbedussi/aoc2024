@@ -1,0 +1,54 @@
+available: ["r", "wr", "b", "g", "bwu", "rb", "gb", "br"]
+desired: ["brwrr", "bggr", "gbbr", "rrbgbr", "ubwu", "bwurrg", "brgr", "bbrgwb"]
+
+lista di match
+
+per ogni match
+- toglilo dalla stringa
+- quel che rimane cerca altro match
+
+se arrivi alla fine della stringa
+    ok
+se rimane una sottostringa che non matcha
+    ko
+
+history: -
+rimane: brwrr
+march: b,br
+
+history: b
+rimane: rwrr
+match: r
+
+history: b,r
+rimane: wrr
+match: wr
+
+history: b,r,wr
+rimane: r
+match: r
+
+history: b,r,wr,r
+rimane: ""
+match: -
+result: OK
+
+
+history: br
+rimane: wrr
+match: wr
+
+history: br,wr
+rimane: r
+match: r
+
+history: br,wr,r
+rimane: ""
+match: -
+result: OK
+
+
+history: -
+rimane: ubwu
+match: -
+result: KO
