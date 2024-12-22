@@ -1,5 +1,4 @@
-require IEx
-use Bitwise
+import Bitwise
 
 defmodule InputHelpers do
   def parse(isTest) do
@@ -42,8 +41,6 @@ defmodule Main do
     )
   end
 end
-
-# Helpers.calculate(123, 10)
 
 defmodule Test do
   use ExUnit.Case
