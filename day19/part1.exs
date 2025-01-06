@@ -17,7 +17,7 @@ defmodule Helpers do
     # IO.inspect(val, label: "val")
     # IO.inspect(cache, label: "cache")
     if Map.has_key?(cache, val) do
-      IO.inspect(cache[val], label: "cache")
+      # IO.inspect(cache[val], label: "cache")
       {cache[val], cache}
     else
       # IO.inspect(result, label: "result")
@@ -68,7 +68,7 @@ defmodule Test do
 
   ExUnit.start()
 
-  # @tag :skip
+  @tag :skip
   test "Day 19 - Part 1 - test data" do
     assert Main.run(true) == 6
   end
